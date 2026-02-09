@@ -12,19 +12,19 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["PSL.API/PSL.API.csproj", "PSL.API/"]
-RUN dotnet restore "./PSL.API/PSL.API.csproj"
+COPY ["src/API/API.csproj", "src/API/"]
+RUN dotnet restore "./src/API/API.csproj"
 COPY . .
-WORKDIR "/src/PSL.API"
-RUN dotnet build "./PSL.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/src/API"
+RUN dotnet build "./API.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # Этот этап используется для публикации проекта службы, который будет скопирован на последний этап
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./PSL.API.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./API.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # Этот этап используется в рабочей среде или при запуске из VS в обычном режиме (по умолчанию, когда конфигурация отладки не используется)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "PSL.API.dll"]
+ENTRYPOINT ["dotnet", "API.dll"]

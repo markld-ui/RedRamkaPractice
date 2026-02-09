@@ -1,4 +1,4 @@
-namespace PSL.API
+namespace API
 {
     public class WeatherForecast
     {
