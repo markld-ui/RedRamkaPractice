@@ -2,4 +2,150 @@
 
 ![.NET 10](https://img.shields.io/badge/.NET-10.0_LTS-512BD4)
 ![License](https://img.shields.io/badge/license-MIT-green)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/nadirbad/VerticalSliceArchitecture?quickstart=1)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/markld-ui/RedRamkaPractice)
+
+## 📌 О проекте
+
+**RedRamkaPractice** — учебный backend-проект, реализующий сервис управления жизненным циклом проектов в компании.  
+Проект разработан в рамках практики и сфокусирован на **архитектуре, доменной логике и корректной реализации бизнес-сценариев**, а не на UI или внешних интеграциях.
+
+Проект намеренно ограничен по scope, чтобы:
+- не размывать архитектуру,
+- показать осознанный дизайн,
+- упростить защиту и сопровождение.
+
+---
+
+## 🎯 Цель проекта
+
+- Отработать **Vertical Slice Architecture** и CQRS-подход в рамках одного сервиса
+- Реализовать **FSM (Finite State Machine)** для управления стадиями проекта
+- Разделить ответственность между слоями:
+  - API
+  - Application
+  - Domain
+  - Infrastructure
+- Показать работу с MediatR, EF Core и валидацией
+- Подготовить проект, который **можно запустить одной командой**
+
+---
+
+## 🚫 Явные ограничения
+
+✔ Один backend-сервис  
+✔ Фиксированный жизненный цикл проекта  
+
+❌ Нет UI  
+❌ Нет микросервисов  
+❌ Нет внешних интеграций  
+
+---
+
+## 🧱 Архитектура
+
+Проект построен на основе **Vertical Slice Architecture** с логическим CQRS.
+
+```
+API
+ └─ Application (MediatR, Commands / Queries)
+     └─ Domain (Aggregate, FSM, бизнес-правила)
+         └─ Infrastructure (EF Core, БД)
+```
+
+---
+
+## 🔄 Жизненный цикл проекта (FSM)
+
+Стадии:
+
+Design → Development → QA → Delivery → Support
+
+Разрешённые переходы:
+- Design → Development
+- Development → QA
+- QA → Delivery
+- Delivery → Support
+- Support → Development
+
+FSM реализован через enum состояний, таблицу допустимых переходов и rule-based валидацию.
+
+---
+
+## 📦 Функциональный scope (MVP)
+
+### Commands
+1. CreateProject  
+2. TransitionProjectStage  
+3. ArchiveProject  
+4. RestoreProject  
+
+### Queries
+5. GetProjectDetails  
+6. GetProjectsList  
+7. GetProjectHistory  
+
+---
+
+## 📁 Структура репозитория
+
+```
+/
+├── src/
+│   ├── Api/
+│   ├── Application/
+│   ├── Domain/
+│   └── Infrastructure/
+├── tests/
+├── docker-compose.yml
+├── global.json
+├── PSL.slnx
+└── README.md
+```
+
+---
+
+## 🛠️ Технологический стек
+
+- .NET 7 / 8 / 10
+- ASP.NET Core Web API
+- MediatR
+- Entity Framework Core
+- PostgreSQL / SQL Server
+- FluentValidation
+- Swagger
+- Docker + Docker Compose
+
+---
+
+## ▶️ Запуск
+
+### Локально
+```
+dotnet restore
+dotnet build
+dotnet run --project src/Api
+```
+
+### Docker
+```
+docker compose up --build
+```
+
+---
+
+## 🧪 Тестирование
+```
+dotnet test
+```
+
+---
+
+## 📖 Swagger
+
+Swagger используется как основной UI для демонстрации и тестирования use cases.
+
+---
+
+## 🪪 Лицензия
+
+MIT License
