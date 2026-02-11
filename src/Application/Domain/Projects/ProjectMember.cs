@@ -1,6 +1,4 @@
-﻿using Application.Common.Models;
-
-namespace Application.Domain.Projects;
+﻿namespace Application.Domain.Projects;
 
 public class ProjectMember
 {

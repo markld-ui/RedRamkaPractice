@@ -23,6 +23,7 @@
     <Folder Include="Common\Behaviours\" />
     <Folder Include="Common\Interfaces\" />
     <Folder Include="Common\Mappings\" />
+    <Folder Include="Common\Models\" />
     <Folder Include="Domain\Events\" />
     <Folder Include="Infrastructure\Persistence\Configurations\" />
     <Folder Include="Infrastructure\Services\" />
