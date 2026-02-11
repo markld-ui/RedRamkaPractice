@@ -6,7 +6,7 @@ public class ProjectTransitionResult
     public string? Error { get; }
     public ProjectStage? NewStage { get; }
     private ProjectTransitionResult(
-        bool isSuccess, 
+        bool isSuccess,
         string? error,
         ProjectStage? newStage)
     {

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Stateless;
+﻿using Stateless;
 
 namespace Application.Domain.Projects;
 
@@ -16,11 +13,11 @@ public class ProjectStateMachine
         .TriggerWithParameters<string> _archiveTrigger;
 
     public ProjectStateMachine(
-        Func<ProjectStage> stateAccessor, 
+        Func<ProjectStage> stateAccessor,
         Action<ProjectStage> stateMutator)
     {
         _machine = new StateMachine<ProjectStage, ProjectTrigger>(
-            stateAccessor, 
+            stateAccessor,
             stateMutator);
 
         _failQaTrigger = _machine.SetTriggerParameters<string>(ProjectTrigger.FailQA);
@@ -52,15 +49,15 @@ public class ProjectStateMachine
         _machine.Configure(ProjectStage.Archived); // terminal state
     }
 
-    public bool CanFire(ProjectTrigger trigger) => 
+    public bool CanFire(ProjectTrigger trigger) =>
         _machine.CanFire(trigger);
 
-    public void Fire(ProjectTrigger trigger) => 
+    public void Fire(ProjectTrigger trigger) =>
         _machine.Fire(trigger);
-    public void FireFailQA(string reason) => 
+    public void FireFailQA(string reason) =>
         _machine.Fire(_failQaTrigger, reason);
-    public void FireReturnToDesign(string reason) => 
+    public void FireReturnToDesign(string reason) =>
         _machine.Fire(_returnToDesignTrigger, reason);
-    public void FireArchive(string reason) => 
+    public void FireArchive(string reason) =>
         _machine.Fire(_archiveTrigger, reason);
 }
