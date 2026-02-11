@@ -8,13 +8,20 @@ namespace Application.Domain.Projects;
 public class ProjectStateMachine
 {
     private readonly StateMachine<ProjectStage, ProjectTrigger> _machine;
-    private readonly StateMachine<ProjectStage, ProjectTrigger>.TriggerWithParameters<string> _failQaTrigger;
-    private readonly StateMachine<ProjectStage, ProjectTrigger>.TriggerWithParameters<string> _returnToDesignTrigger;
-    private readonly StateMachine<ProjectStage, ProjectTrigger>.TriggerWithParameters<string> _archiveTrigger;
+    private readonly StateMachine<ProjectStage, ProjectTrigger>
+        .TriggerWithParameters<string> _failQaTrigger;
+    private readonly StateMachine<ProjectStage, ProjectTrigger>
+        .TriggerWithParameters<string> _returnToDesignTrigger;
+    private readonly StateMachine<ProjectStage, ProjectTrigger>
+        .TriggerWithParameters<string> _archiveTrigger;
 
-    public ProjectStateMachine(Func<ProjectStage> stateAccessor, Action<ProjectStage> stateMutator)
+    public ProjectStateMachine(
+        Func<ProjectStage> stateAccessor, 
+        Action<ProjectStage> stateMutator)
     {
-        _machine = new StateMachine<ProjectStage, ProjectTrigger>(stateAccessor, stateMutator);
+        _machine = new StateMachine<ProjectStage, ProjectTrigger>(
+            stateAccessor, 
+            stateMutator);
 
         _failQaTrigger = _machine.SetTriggerParameters<string>(ProjectTrigger.FailQA);
         _returnToDesignTrigger = _machine.SetTriggerParameters<string>(ProjectTrigger.ReturnToDesign);
@@ -45,10 +52,15 @@ public class ProjectStateMachine
         _machine.Configure(ProjectStage.Archived); // terminal state
     }
 
-    public bool CanFire(ProjectTrigger trigger) => _machine.CanFire(trigger);
+    public bool CanFire(ProjectTrigger trigger) => 
+        _machine.CanFire(trigger);
 
-    public void Fire(ProjectTrigger trigger) => _machine.Fire(trigger);
-    public void FireFailQA(string reason) => _machine.Fire(_failQaTrigger, reason);
-    public void FireReturnToDesign(string reason) => _machine.Fire(_returnToDesignTrigger, reason);
-    public void FireArchive(string reason) => _machine.Fire(_archiveTrigger, reason);
+    public void Fire(ProjectTrigger trigger) => 
+        _machine.Fire(trigger);
+    public void FireFailQA(string reason) => 
+        _machine.Fire(_failQaTrigger, reason);
+    public void FireReturnToDesign(string reason) => 
+        _machine.Fire(_returnToDesignTrigger, reason);
+    public void FireArchive(string reason) => 
+        _machine.Fire(_archiveTrigger, reason);
 }
