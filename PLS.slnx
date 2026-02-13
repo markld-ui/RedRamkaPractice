@@ -1,8 +1,11 @@
 <Solution>
+  <Project Path="Domain/Domain.csproj" Id="55a45343-ffea-475b-9fa6-435d2be4309a" />
   <Project Path="src/API/API.csproj" Id="4e053315-9c47-49f8-8d48-c125f5f9d3be">
     <BuildDependency Project="src/Application/Application.csproj" />
   </Project>
-  <Project Path="src/Application/Application.csproj" Id="26afc7fb-f06e-46ec-bf0f-43efcf88b29c" />
+  <Project Path="src/Application/Application.csproj" Id="26afc7fb-f06e-46ec-bf0f-43efcf88b29c">
+    <BuildDependency Project="Domain/Domain.csproj" />
+  </Project>
   <Project Path="tests/Application.IntegrationTests/Application.IntegrationTests.csproj" Id="76a16e8c-9058-4ce4-ba1a-408bbc3c3514">
     <BuildDependency Project="src/API/API.csproj" />
     <BuildDependency Project="src/Application/Application.csproj" />

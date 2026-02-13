@@ -1,4 +1,4 @@
-﻿namespace Application.Domain;
+﻿namespace Domain.Models;
 
 public class Credentials
 {
@@ -8,5 +8,5 @@ public class Credentials
     public string? RefreshToken { get; set; }
 
     public Guid UserId { get; set; }
-    public User? User { get; set; }
+    public User User { get; set; } = null!;
 }

@@ -24,8 +24,6 @@
     <Folder Include="Common\Interfaces\" />
     <Folder Include="Common\Mappings\" />
     <Folder Include="Common\Models\" />
-    <Folder Include="Domain\Events\" />
-    <Folder Include="Infrastructure\Persistence\Configurations\" />
     <Folder Include="Infrastructure\Services\" />
     <Folder Include="Infrastructure\Persistence\Migrations\" />
     <Folder Include="Scheduling\" />
@@ -41,6 +39,10 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.2" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageReference Include="Stateless" Version="5.20.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Domain\Domain.csproj" />
   </ItemGroup>
 
 </Project>

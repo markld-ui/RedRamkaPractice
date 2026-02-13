@@ -1,4 +1,4 @@
-﻿namespace Application.Domain.Projects;
+﻿namespace Domain.Projects;
 
 public enum ProjectTrigger
 {

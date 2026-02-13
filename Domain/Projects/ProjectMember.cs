@@ -1,4 +1,6 @@
-﻿namespace Application.Domain.Projects;
+﻿using Domain.Models;
+
+namespace Domain.Projects;
 
 public class ProjectMember
 {

@@ -1,6 +1,6 @@
 ﻿using Stateless;
 
-namespace Application.Domain.Projects;
+namespace Domain.Projects;
 
 public class ProjectStateMachine
 {
