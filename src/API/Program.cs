@@ -1,4 +1,3 @@
-using Application.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
@@ -7,8 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+//builder.Services.AddDbContext<ApplicationDbContext>(options =>
+//    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -26,8 +25,6 @@ builder.Services.AddSwaggerGen(c =>
         Title = "Project Lifecycle Service API",
         Version = "v1",
     });
-
-    //c.CustomSchemaIds(type => (type.FullName ?? type.Name ?? type.ToString()).Replace("+", "."));
 });
 
 builder.Services.AddProblemDetails();
@@ -54,15 +51,8 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/error-development");
-}
 else
-{
-    app.UseExceptionHandler("/error");
-}
+    app.UseExceptionHandler("/error-development");
 
 app.UseAuthorization();
 app.MapControllers();

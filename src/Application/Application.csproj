@@ -23,10 +23,15 @@
     <Folder Include="Common\Behaviours\" />
     <Folder Include="Common\Interfaces\" />
     <Folder Include="Common\Mappings\" />
-    <Folder Include="Common\Models\" />
-    <Folder Include="Infrastructure\Services\" />
-    <Folder Include="Infrastructure\Persistence\Migrations\" />
-    <Folder Include="Scheduling\" />
+    <Folder Include="Common\Dtos\" />
+    <Folder Include="Features\Credentials\Commands\" />
+    <Folder Include="Features\Credentials\Queries\" />
+    <Folder Include="Features\Projects\Commands\" />
+    <Folder Include="Features\Projects\Queries\" />
+    <Folder Include="Features\Roles\Commands\" />
+    <Folder Include="Features\Roles\Queries\" />
+    <Folder Include="Features\Users\Commands\" />
+    <Folder Include="Features\Users\Queries\" />
   </ItemGroup>
 
   <ItemGroup>

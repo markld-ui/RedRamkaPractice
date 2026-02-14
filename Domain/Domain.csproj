@@ -8,9 +8,13 @@
 
   <ItemGroup>
     <Folder Include="Events\" />
+    <Folder Include="Enums\" />
+    <Folder Include="Interfaces\" />
+    <Folder Include="Common\" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="MediatR" Version="14.0.0" />
     <PackageReference Include="Stateless" Version="5.20.1" />
   </ItemGroup>
 
