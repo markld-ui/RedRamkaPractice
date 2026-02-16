@@ -12,6 +12,6 @@ public class User
 
     public ICollection<ProjectMember> ProjectMemberships { get; set; } =
         new List<ProjectMember>();
-    public ICollection<UserRole> UserRoles { get; set; } = 
+    public ICollection<UserRole> UserRoles { get; set; } =
         new List<UserRole>();
 }

@@ -1,16 +1,32 @@
+using API.Middleware;
+using API.Services;
+using Application.Common.Interfaces;
+using Application.Features.Projects.Commands.CreateProject;
+using FluentValidation;
+using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
+using Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.AddControllers()
+    .AddJsonOptions(opts =>
+    {
+        opts.JsonSerializerOptions.PropertyNamingPolicy = null;
+    });
 
-//builder.Services.AddDbContext<ApplicationDbContext>(options =>
-//    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
-
-builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Project Lifecycle Service API",
+        Version = "v1"
+    });
+});
 
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
@@ -18,46 +34,51 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader()
               .AllowAnyMethod()));
 
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Project Lifecycle Service API",
-        Version = "v1",
-    });
-});
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddProblemDetails();
+builder.Services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
 
-//builder.Services.AddApplication();
-//builder.Services.AddInfrastructure(builder.Configuration);
+var applicationAssembly = typeof(CreateProjectCommand).Assembly;
 
-builder.Services.AddHealthChecks();
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(applicationAssembly));
+
+builder.Services.AddValidatorsFromAssembly(applicationAssembly);
+
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IDateTime, DateTimeService>();
 builder.Services.AddHttpContextAccessor();
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = builder.Configuration["Authentication:Authority"];
+        options.Audience = builder.Configuration["Authentication:Audience"];
+    });
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+app.UseMiddleware<GlobalExceptionHandler>();
+
 app.UseSwagger();
+app.UseSwaggerUI();
 
-app.UseSwaggerUI(options =>
-{
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
-    options.RoutePrefix = string.Empty;
-});
-
+app.UseHttpsRedirection();
+app.UseRouting();
 app.UseCors();
-
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
-else
-    app.UseExceptionHandler("/error-development");
-
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Map Minimal API endpoints
-//app.MapHealthcareEndpoints();
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
 
 app.Run();

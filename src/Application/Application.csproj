@@ -21,13 +21,10 @@
 
   <ItemGroup>
     <Folder Include="Common\Behaviours\" />
-    <Folder Include="Common\Interfaces\" />
     <Folder Include="Common\Mappings\" />
     <Folder Include="Common\Dtos\" />
     <Folder Include="Features\Credentials\Commands\" />
     <Folder Include="Features\Credentials\Queries\" />
-    <Folder Include="Features\Projects\Commands\" />
-    <Folder Include="Features\Projects\Queries\" />
     <Folder Include="Features\Roles\Commands\" />
     <Folder Include="Features\Roles\Queries\" />
     <Folder Include="Features\Users\Commands\" />
@@ -40,14 +37,15 @@
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageReference Include="MediatR" Version="14.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.2" />
+    <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.3" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageReference Include="Stateless" Version="5.20.1" />
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Domain\Domain.csproj" />
-  </ItemGroup>
+	
+<ItemGroup>
+	<ProjectReference Include="..\Domain\Domain.csproj" />
+</ItemGroup>
 
 </Project>
