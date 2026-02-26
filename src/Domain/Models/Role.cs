@@ -5,6 +5,7 @@
 //    ProductManager,
 //    ProjectManager,
 //    DevOps
+//    Admin
 
 public class Role
 {

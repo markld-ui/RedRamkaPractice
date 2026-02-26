@@ -23,12 +23,7 @@
     <Folder Include="Common\Behaviours\" />
     <Folder Include="Common\Mappings\" />
     <Folder Include="Common\Dtos\" />
-    <Folder Include="Features\Credentials\Commands\" />
     <Folder Include="Features\Credentials\Queries\" />
-    <Folder Include="Features\Roles\Commands\" />
-    <Folder Include="Features\Roles\Queries\" />
-    <Folder Include="Features\Users\Commands\" />
-    <Folder Include="Features\Users\Queries\" />
   </ItemGroup>
 
   <ItemGroup>
