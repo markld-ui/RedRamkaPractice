@@ -1,7 +1,7 @@
 using API.Middleware;
 using API.Services;
 using Application.Common.Interfaces;
-using Application.Features.Projects.Commands.CreateProject;
+using Application.Features.Projects.Commands;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

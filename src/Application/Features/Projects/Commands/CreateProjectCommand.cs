@@ -7,7 +7,7 @@ using Domain.Events;
 using Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Projects.Commands.CreateProject;
+namespace Application.Features.Projects.Commands;
 
 public class CreateProjectCommandValidator : AbstractValidator<CreateProjectCommand>
 {
