@@ -81,6 +81,7 @@ builder.Services.AddScoped<IDateTime, DateTimeService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IProjectAuthorizationService, ProjectAuthorizationService>();
+builder.Services.AddScoped<ApplicationDbContextSeed>();
 
 builder.Services.AddHttpContextAccessor();
 
@@ -125,6 +126,12 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.Migrate();
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var seed = scope.ServiceProvider.GetRequiredService<ApplicationDbContextSeed>();
+    await seed.SeedAsync();
 }
 
 app.Run();
