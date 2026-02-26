@@ -1,6 +1,7 @@
 ﻿
 namespace Application.Features.Projects.Commands.Shared;
 
-internal class TransitionResult
-{
-}
+public record TransitionResult(
+    bool IsSuccess,
+    string? Error,
+    string? NewStage);

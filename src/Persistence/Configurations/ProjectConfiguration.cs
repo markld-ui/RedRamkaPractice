@@ -17,14 +17,26 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .HasForeignKey(m => m.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.Navigation(p => p.Members)
+            .HasField("_members")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
         builder.HasMany(p => p.Transitions)
             .WithOne(t => t.Project)
             .HasForeignKey(t => t.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.Navigation(p => p.Transitions)
+            .HasField("_transitions")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
         builder.HasMany(p => p.Specifications)
             .WithOne(s => s.Project)
             .HasForeignKey(s => s.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(p => p.Specifications)
+            .HasField("_specifications")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

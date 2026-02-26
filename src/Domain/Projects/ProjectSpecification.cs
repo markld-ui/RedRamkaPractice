@@ -30,4 +30,10 @@ public class ProjectSpecification
         IsApproved = true;
         ApprovedAt = DateTime.UtcNow;
     }
+
+    public void Revoke()
+    {
+        if (!IsApproved) return;
+        IsApproved = false;
+    }
 }

@@ -80,6 +80,7 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IDateTime, DateTimeService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IProjectAuthorizationService, ProjectAuthorizationService>();
 
 builder.Services.AddHttpContextAccessor();
 

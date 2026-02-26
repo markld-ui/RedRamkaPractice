@@ -44,6 +44,37 @@ public class Project : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void AddSpecification(string content)
+    {
+        if (Stage == ProjectStage.Archived)
+            throw new InvalidOperationException("Cannot add specification to an archived project.");
+
+        var nextVersion = _specifications.Any()
+            ? _specifications.Max(s => s.Version) + 1
+            : 1;
+
+        _specifications.Add(new ProjectSpecification(nextVersion, content, Id));
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ApproveSpecification(Guid specificationId)
+    {
+        var spec = _specifications.FirstOrDefault(s => s.Id == specificationId);
+
+        if (spec is null)
+            throw new InvalidOperationException("Specification not found in this project.");
+
+        if (spec.IsApproved)
+            throw new InvalidOperationException("Specification is already approved.");
+
+        // Отзываем предыдущую одобренную — актуальной может быть только одна
+        foreach (var approved in _specifications.Where(s => s.IsApproved))
+            approved.Revoke();
+
+        spec.Approve();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public bool HasApprovedSpecification()
         => _specifications.Any(s => s.IsApproved);
 

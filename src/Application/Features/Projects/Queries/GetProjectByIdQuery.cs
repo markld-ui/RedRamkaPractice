@@ -4,13 +4,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Projects.Queries;
 
-public class GetProjectByIdHandler : IRequestHandler<GetProjectByIdQuery, GetProjectDto?>
+public record GetProjectByIdQuery(Guid Id) : IRequest<GetProjectDto?>;
+
+public class GetProjectByIdQueryHandler : IRequestHandler<GetProjectByIdQuery, GetProjectDto?>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IProjectAuthorizationService _auth;
 
-    public GetProjectByIdHandler(IApplicationDbContext context)
+    public GetProjectByIdQueryHandler(
+        IApplicationDbContext context,
+        IProjectAuthorizationService auth)
     {
         _context = context;
+        _auth = auth;
     }
 
     public async Task<GetProjectDto?> Handle(GetProjectByIdQuery request, CancellationToken ct)
@@ -19,9 +25,12 @@ public class GetProjectByIdHandler : IRequestHandler<GetProjectByIdQuery, GetPro
             .Include(p => p.Members)
             .FirstOrDefaultAsync(p => p.Id == request.Id, ct);
 
-        if (project == null) return null;
+        if (project is null) return null;
 
-        var dto = new GetProjectDto(
+        // Бросит UnauthorizedAccessException если нет доступа
+        await _auth.RequireProjectMemberAsync(request.Id, ct);
+
+        return new GetProjectDto(
             project.Id,
             project.Name,
             project.Description,
@@ -29,14 +38,11 @@ public class GetProjectByIdHandler : IRequestHandler<GetProjectByIdQuery, GetPro
             project.CreatedAt,
             project.UpdatedAt,
             project.Members.Select(m => m.UserId));
-
-        return dto;
     }
 }
 
-public record GetProjectByIdQuery(Guid Id) : IRequest<GetProjectDto?>;
-
-public record GetProjectDto(Guid Id,
+public record GetProjectDto(
+    Guid Id,
     string Name,
     string Description,
     string Stage,
