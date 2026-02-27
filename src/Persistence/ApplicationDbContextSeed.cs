@@ -5,11 +5,23 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Persistence;
 
+/// <summary>
+/// Сервис первоначального заполнения базы данных тестовыми данными.
+/// </summary>
+/// <remarks>
+/// Все операции идемпотентны — повторный запуск не создаёт дублирующих записей.
+/// Перед заполнением автоматически применяются все ожидающие миграции.
+/// </remarks>
 public class ApplicationDbContextSeed
 {
     private readonly ApplicationDbContext _context;
     private readonly IPasswordHasher _hasher;
 
+    /// <summary>
+    /// Инициализирует новый экземпляр класса <see cref="ApplicationDbContextSeed"/>.
+    /// </summary>
+    /// <param name="context">Контекст базы данных приложения.</param>
+    /// <param name="hasher">Сервис хэширования паролей.</param>
     public ApplicationDbContextSeed(
         ApplicationDbContext context,
         IPasswordHasher hasher)
@@ -18,6 +30,10 @@ public class ApplicationDbContextSeed
         _hasher = hasher;
     }
 
+    /// <summary>
+    /// Применяет миграции и последовательно заполняет базу данных
+    /// начальными ролями и пользователями.
+    /// </summary>
     public async Task SeedAsync()
     {
         await _context.Database.MigrateAsync();
@@ -27,6 +43,13 @@ public class ApplicationDbContextSeed
 
     // ─── Roles ───────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Создаёт системные роли, если они ещё не существуют в базе данных.
+    /// </summary>
+    /// <remarks>
+    /// Добавляются роли: <c>Admin</c>, <c>ProjectManager</c>, <c>Developer</c>,
+    /// <c>Tester</c>, <c>ProductManager</c>, <c>DevOps</c>.
+    /// </remarks>
     private async Task SeedRolesAsync()
     {
         var rolesToSeed = new[]
@@ -57,6 +80,15 @@ public class ApplicationDbContextSeed
 
     // ─── Users ───────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Создаёт тестовых пользователей с учётными данными и ролями,
+    /// если пользователи с указанными адресами электронной почты ещё не существуют.
+    /// </summary>
+    /// <remarks>
+    /// Для каждого пользователя создаются связанные записи
+    /// <see cref="Credentials"/> и <see cref="UserRole"/>.
+    /// Пароли сохраняются в виде BCrypt-хэша.
+    /// </remarks>
     private async Task SeedUsersAsync()
     {
         var usersToSeed = new[]
@@ -113,7 +145,6 @@ public class ApplicationDbContextSeed
 
         foreach (var u in usersToSeed)
         {
-            // Идемпотентность — пропускаем если email уже есть
             if (await _context.Credentials.AnyAsync(c => c.Email == u.Email))
                 continue;
 
