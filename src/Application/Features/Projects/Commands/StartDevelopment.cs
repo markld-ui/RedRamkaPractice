@@ -1,5 +1,4 @@
-﻿
-using Application.Common.Constants;
+﻿using Application.Common.Constants;
 using Application.Common.Interfaces;
 using Application.Features.Projects.Commands.Shared;
 using MediatR;
@@ -7,14 +6,27 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Projects.Commands;
 
+/// <summary>
+/// Команда для перевода проекта в стадию разработки.
+/// </summary>
+/// <param name="ProjectId">Уникальный идентификатор проекта.</param>
 public record StartDevelopmentCommand(Guid ProjectId) : IRequest<TransitionResult>;
 
+/// <summary>
+/// Обработчик команды <see cref="StartDevelopmentCommand"/>.
+/// </summary>
 public class StartDevelopmentCommandHandler : IRequestHandler<StartDevelopmentCommand, TransitionResult>
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly IProjectAuthorizationService _auth;
 
+    /// <summary>
+    /// Инициализирует новый экземпляр класса <see cref="StartDevelopmentCommandHandler"/>.
+    /// </summary>
+    /// <param name="context">Контекст базы данных приложения.</param>
+    /// <param name="currentUser">Сервис для получения данных текущего пользователя.</param>
+    /// <param name="auth">Сервис проверки прав доступа к проекту.</param>
     public StartDevelopmentCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
@@ -25,6 +37,26 @@ public class StartDevelopmentCommandHandler : IRequestHandler<StartDevelopmentCo
         _auth = auth;
     }
 
+    /// <summary>
+    /// Обрабатывает команду перевода проекта в стадию разработки.
+    /// </summary>
+    /// <param name="request">Команда с идентификатором проекта.</param>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <returns>
+    /// <see cref="TransitionResult"/> с новой стадией <c>Development</c> при успехе,
+    /// либо с описанием ошибки если переход невозможен из текущей стадии
+    /// или отсутствует утверждённая спецификация.
+    /// </returns>
+    /// <exception cref="UnauthorizedAccessException">
+    /// Выбрасывается, если текущий пользователь не аутентифицирован
+    /// или не обладает ролью <c>ProjectManager</c> в данном проекте.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Выбрасывается, если проект не найден.
+    /// </exception>
+    /// <remarks>
+    /// Переход возможен только при наличии хотя бы одной утверждённой спецификации.
+    /// </remarks>
     public async Task<TransitionResult> Handle(StartDevelopmentCommand request, CancellationToken ct)
     {
         if (!_currentUser.IsAuthenticated)
@@ -48,8 +80,8 @@ public class StartDevelopmentCommandHandler : IRequestHandler<StartDevelopmentCo
             return new TransitionResult(false, result.Error, null);
 
         var newTransition = project.Transitions
-        .OrderByDescending(t => t.ChangedAt)
-        .First();
+            .OrderByDescending(t => t.ChangedAt)
+            .First();
         _context.ProjectTransitions.Add(newTransition);
 
         await _context.SaveChangesAsync(ct);

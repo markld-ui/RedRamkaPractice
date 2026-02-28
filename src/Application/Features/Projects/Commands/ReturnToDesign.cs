@@ -7,10 +7,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Projects.Commands;
 
+/// <summary>
+/// Команда для возврата проекта на стадию проектирования с указанием причины.
+/// </summary>
+/// <param name="ProjectId">Уникальный идентификатор проекта.</param>
+/// <param name="Reason">Причина возврата на стадию проектирования.</param>
 public record ReturnToDesignCommand(Guid ProjectId, string Reason) : IRequest<TransitionResult>;
 
+/// <summary>
+/// Валидатор команды <see cref="ReturnToDesignCommand"/>.
+/// </summary>
 public class ReturnToDesignCommandValidator : AbstractValidator<ReturnToDesignCommand>
 {
+    /// <summary>
+    /// Инициализирует новый экземпляр класса <see cref="ReturnToDesignCommandValidator"/>
+    /// и настраивает правила валидации.
+    /// </summary>
+    /// <remarks>
+    /// Причина возврата обязательна и не может превышать 1000 символов.
+    /// </remarks>
     public ReturnToDesignCommandValidator()
     {
         RuleFor(x => x.Reason)
@@ -19,12 +34,21 @@ public class ReturnToDesignCommandValidator : AbstractValidator<ReturnToDesignCo
     }
 }
 
+/// <summary>
+/// Обработчик команды <see cref="ReturnToDesignCommand"/>.
+/// </summary>
 public class ReturnToDesignCommandHandler : IRequestHandler<ReturnToDesignCommand, TransitionResult>
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly IProjectAuthorizationService _auth;
 
+    /// <summary>
+    /// Инициализирует новый экземпляр класса <see cref="ReturnToDesignCommandHandler"/>.
+    /// </summary>
+    /// <param name="context">Контекст базы данных приложения.</param>
+    /// <param name="currentUser">Сервис для получения данных текущего пользователя.</param>
+    /// <param name="auth">Сервис проверки прав доступа к проекту.</param>
     public ReturnToDesignCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
@@ -35,6 +59,22 @@ public class ReturnToDesignCommandHandler : IRequestHandler<ReturnToDesignComman
         _auth = auth;
     }
 
+    /// <summary>
+    /// Обрабатывает команду возврата проекта на стадию проектирования.
+    /// </summary>
+    /// <param name="request">Команда с идентификатором проекта и причиной возврата.</param>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <returns>
+    /// <see cref="TransitionResult"/> с новой стадией <c>Design</c> при успехе,
+    /// либо с описанием ошибки если переход невозможен из текущей стадии.
+    /// </returns>
+    /// <exception cref="UnauthorizedAccessException">
+    /// Выбрасывается, если текущий пользователь не аутентифицирован
+    /// или не обладает ролью <c>ProjectManager</c> в данном проекте.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Выбрасывается, если проект не найден.
+    /// </exception>
     public async Task<TransitionResult> Handle(ReturnToDesignCommand request, CancellationToken ct)
     {
         if (!_currentUser.IsAuthenticated)
@@ -57,8 +97,8 @@ public class ReturnToDesignCommandHandler : IRequestHandler<ReturnToDesignComman
             return new TransitionResult(false, result.Error, null);
 
         var newTransition = project.Transitions
-        .OrderByDescending(t => t.ChangedAt)
-        .First();
+            .OrderByDescending(t => t.ChangedAt)
+            .First();
         _context.ProjectTransitions.Add(newTransition);
 
         await _context.SaveChangesAsync(ct);

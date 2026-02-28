@@ -6,14 +6,27 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Projects.Commands;
 
+/// <summary>
+/// Команда для передачи проекта на стадию тестирования (QA).
+/// </summary>
+/// <param name="ProjectId">Уникальный идентификатор проекта.</param>
 public record SendToQACommand(Guid ProjectId) : IRequest<TransitionResult>;
 
+/// <summary>
+/// Обработчик команды <see cref="SendToQACommand"/>.
+/// </summary>
 public class SendToQACommandHandler : IRequestHandler<SendToQACommand, TransitionResult>
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly IProjectAuthorizationService _auth;
 
+    /// <summary>
+    /// Инициализирует новый экземпляр класса <see cref="SendToQACommandHandler"/>.
+    /// </summary>
+    /// <param name="context">Контекст базы данных приложения.</param>
+    /// <param name="currentUser">Сервис для получения данных текущего пользователя.</param>
+    /// <param name="auth">Сервис проверки прав доступа к проекту.</param>
     public SendToQACommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
@@ -24,6 +37,22 @@ public class SendToQACommandHandler : IRequestHandler<SendToQACommand, Transitio
         _auth = auth;
     }
 
+    /// <summary>
+    /// Обрабатывает команду передачи проекта на тестирование.
+    /// </summary>
+    /// <param name="request">Команда с идентификатором проекта.</param>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <returns>
+    /// <see cref="TransitionResult"/> с новой стадией <c>QA</c> при успехе,
+    /// либо с описанием ошибки если переход невозможен из текущей стадии.
+    /// </returns>
+    /// <exception cref="UnauthorizedAccessException">
+    /// Выбрасывается, если текущий пользователь не аутентифицирован
+    /// или не обладает ролью <c>ProjectManager</c> либо <c>Developer</c> в данном проекте.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Выбрасывается, если проект не найден.
+    /// </exception>
     public async Task<TransitionResult> Handle(SendToQACommand request, CancellationToken ct)
     {
         if (!_currentUser.IsAuthenticated)
@@ -47,8 +76,8 @@ public class SendToQACommandHandler : IRequestHandler<SendToQACommand, Transitio
             return new TransitionResult(false, result.Error, null);
 
         var newTransition = project.Transitions
-        .OrderByDescending(t => t.ChangedAt)
-        .First();
+            .OrderByDescending(t => t.ChangedAt)
+            .First();
         _context.ProjectTransitions.Add(newTransition);
 
         await _context.SaveChangesAsync(ct);

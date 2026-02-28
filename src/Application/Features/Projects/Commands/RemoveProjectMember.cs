@@ -5,14 +5,28 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Projects.Commands;
 
+/// <summary>
+/// Команда для удаления участника из проекта.
+/// </summary>
+/// <param name="ProjectId">Уникальный идентификатор проекта.</param>
+/// <param name="UserId">Уникальный идентификатор удаляемого участника.</param>
 public record RemoveProjectMemberCommand(Guid ProjectId, Guid UserId) : IRequest;
 
+/// <summary>
+/// Обработчик команды <see cref="RemoveProjectMemberCommand"/>.
+/// </summary>
 public class RemoveProjectMemberCommandHandler : IRequestHandler<RemoveProjectMemberCommand>
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly IProjectAuthorizationService _auth;
 
+    /// <summary>
+    /// Инициализирует новый экземпляр класса <see cref="RemoveProjectMemberCommandHandler"/>.
+    /// </summary>
+    /// <param name="context">Контекст базы данных приложения.</param>
+    /// <param name="currentUser">Сервис для получения данных текущего пользователя.</param>
+    /// <param name="auth">Сервис проверки прав доступа к проекту.</param>
     public RemoveProjectMemberCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
@@ -23,6 +37,23 @@ public class RemoveProjectMemberCommandHandler : IRequestHandler<RemoveProjectMe
         _auth = auth;
     }
 
+    /// <summary>
+    /// Обрабатывает команду удаления участника из проекта.
+    /// </summary>
+    /// <param name="request">Команда с идентификаторами проекта и удаляемого участника.</param>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <exception cref="UnauthorizedAccessException">
+    /// Выбрасывается, если текущий пользователь не аутентифицирован
+    /// или не обладает ролью <c>ProjectManager</c> в данном проекте.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Выбрасывается в следующих случаях:
+    /// <list type="bullet">
+    ///   <item>Проект не найден.</item>
+    ///   <item>Указанный пользователь не является участником проекта.</item>
+    ///   <item>Удаляемый участник является единственным <c>ProjectManager</c> в проекте.</item>
+    /// </list>
+    /// </exception>
     public async Task Handle(RemoveProjectMemberCommand request, CancellationToken ct)
     {
         if (!_currentUser.IsAuthenticated)

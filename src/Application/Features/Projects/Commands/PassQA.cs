@@ -6,14 +6,27 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Projects.Commands;
 
+/// <summary>
+/// Команда для фиксации успешного прохождения тестирования (QA).
+/// </summary>
+/// <param name="ProjectId">Уникальный идентификатор проекта.</param>
 public record PassQACommand(Guid ProjectId) : IRequest<TransitionResult>;
 
+/// <summary>
+/// Обработчик команды <see cref="PassQACommand"/>.
+/// </summary>
 public class PassQACommandHandler : IRequestHandler<PassQACommand, TransitionResult>
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly IProjectAuthorizationService _auth;
 
+    /// <summary>
+    /// Инициализирует новый экземпляр класса <see cref="PassQACommandHandler"/>.
+    /// </summary>
+    /// <param name="context">Контекст базы данных приложения.</param>
+    /// <param name="currentUser">Сервис для получения данных текущего пользователя.</param>
+    /// <param name="auth">Сервис проверки прав доступа к проекту.</param>
     public PassQACommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
@@ -24,6 +37,22 @@ public class PassQACommandHandler : IRequestHandler<PassQACommand, TransitionRes
         _auth = auth;
     }
 
+    /// <summary>
+    /// Обрабатывает команду фиксации успешного прохождения тестирования.
+    /// </summary>
+    /// <param name="request">Команда с идентификатором проекта.</param>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <returns>
+    /// <see cref="TransitionResult"/> с новой стадией <c>Delivery</c> при успехе,
+    /// либо с описанием ошибки если переход невозможен из текущей стадии.
+    /// </returns>
+    /// <exception cref="UnauthorizedAccessException">
+    /// Выбрасывается, если текущий пользователь не аутентифицирован
+    /// или не обладает ролью <c>ProjectManager</c> либо <c>Tester</c> в данном проекте.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Выбрасывается, если проект не найден.
+    /// </exception>
     public async Task<TransitionResult> Handle(PassQACommand request, CancellationToken ct)
     {
         if (!_currentUser.IsAuthenticated)
@@ -47,8 +76,8 @@ public class PassQACommandHandler : IRequestHandler<PassQACommand, TransitionRes
             return new TransitionResult(false, result.Error, null);
 
         var newTransition = project.Transitions
-        .OrderByDescending(t => t.ChangedAt)
-        .First();
+            .OrderByDescending(t => t.ChangedAt)
+            .First();
         _context.ProjectTransitions.Add(newTransition);
 
         await _context.SaveChangesAsync(ct);

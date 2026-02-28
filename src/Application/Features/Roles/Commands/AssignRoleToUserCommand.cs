@@ -5,16 +5,41 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Roles.Commands;
 
+/// <summary>
+/// Команда для назначения роли указанному пользователю.
+/// </summary>
+/// <param name="UserId">Уникальный идентификатор пользователя.</param>
+/// <param name="RoleId">Уникальный идентификатор назначаемой роли.</param>
+public record AssignRoleToUserCommand(
+    Guid UserId,
+    Guid RoleId) : IRequest;
+
+/// <summary>
+/// Обработчик команды <see cref="AssignRoleToUserCommand"/>.
+/// </summary>
 public class AssignRoleToUserCommandHandler
     : IRequestHandler<AssignRoleToUserCommand>
 {
     private readonly IApplicationDbContext _context;
 
+    /// <summary>
+    /// Инициализирует новый экземпляр класса <see cref="AssignRoleToUserCommandHandler"/>.
+    /// </summary>
+    /// <param name="context">Контекст базы данных приложения.</param>
     public AssignRoleToUserCommandHandler(IApplicationDbContext context)
     {
         _context = context;
     }
 
+    /// <summary>
+    /// Обрабатывает команду назначения роли пользователю.
+    /// </summary>
+    /// <param name="request">Команда с идентификаторами пользователя и роли.</param>
+    /// <param name="ct">Токен отмены операции.</param>
+    /// <remarks>
+    /// Операция идемпотентна — повторное назначение уже существующей связи
+    /// пользователь-роль игнорируется без выброса исключения.
+    /// </remarks>
     public async Task Handle(
         AssignRoleToUserCommand request,
         CancellationToken ct)
@@ -36,7 +61,3 @@ public class AssignRoleToUserCommandHandler
         await _context.SaveChangesAsync(ct);
     }
 }
-
-public record  AssignRoleToUserCommand(
-    Guid UserId,
-    Guid RoleId) : IRequest;
