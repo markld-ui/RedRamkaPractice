@@ -1,469 +1,283 @@
-# Application Unit Tests
+# Application.UnitTests
 
-Comprehensive unit test suite for the Vertical Slice Architecture application. Tests verify individual components in isolation without external dependencies.
+Юнит-тесты для `RedRamkaPractice`. Покрывают доменную логику, application-слой (команды, запросы, валидаторы) и сервисы в изоляции, без обращения к базе данных или HTTP.
 
-## Quick Start
+**334 теста** · xUnit · Moq · FluentAssertions
+
+---
+
+## Быстрый старт
 
 ```bash
-# Run all unit tests
+# Запустить все тесты
 dotnet test
 
-# Run specific test class
-dotnet test --filter "FullyQualifiedName~AppointmentTests"
+# Запустить конкретный класс
+dotnet test --filter "FullyQualifiedName~ProjectEdgeCaseTests"
 
-# Run with detailed output
+# Запустить по категории (только домен)
+dotnet test --filter "FullyQualifiedName~Domain"
+
+# С подробным выводом
 dotnet test --logger "console;verbosity=detailed"
 
-# Run and watch for changes
+# В режиме watch
 dotnet watch test
 ```
 
-## Project Structure
+---
+
+## Структура проекта
 
 ```
 Application.UnitTests/
-├── Common/                          # Tests for shared infrastructure
-│   ├── Behaviours/                  # MediatR pipeline behavior tests
-│   ├── MinimalApiProblemHelperTests.cs
-│   └── ValidationFilterTests.cs
-├── Domain/                          # Domain entity tests
-│   └── Healthcare/
-│       ├── AppointmentTests.cs      # Appointment entity behavior
-│       └── PrescriptionTests.cs     # Prescription entity behavior
-├── Features/                        # Feature-specific tests
-│   └── Healthcare/
-│       └── IssuePrescriptionValidatorTests.cs
-├── Healthcare/                      # Healthcare feature validators
-│   └── Appointments/
-│       ├── BookAppointmentValidatorTests.cs
-│       ├── RescheduleAppointmentValidatorTests.cs
-│       └── CompleteAppointmentValidatorTests.cs
-└── ValueObjects/                    # Value object tests
-    └── ColourTests.cs
+│
+├── Common/
+│   ├── HandlerTestBase.cs          ← базовый класс с фабриками тестовых данных
+│   └── TestAsyncQueryProvider.cs   ← хелперы для async EF Core DbSet
+│
+├── Domain/                         ← 164 теста, наиболее важные
+│   ├── BaseEntityTests.cs          ← механизм доменных событий
+│   ├── BaseEventTests.cs           ← OccurredOn, UTC-гарантии
+│   ├── DomainModelTests.cs         ← User, Role, Credentials, UserRole, RoleConstants
+│   ├── ProjectTests.cs             ← основные сценарии Project
+│   ├── ProjectEdgeCaseTests.cs     ← все недопустимые переходы, Reason в Transition
+│   ├── ProjectExtendedTests.cs     ← UpdatedAt, CreatedAt, domain events, versioning
+│   ├── ProjectMemberAndTransitionTests.cs
+│   ├── ProjectSpecificationTests.cs ← Approve/Revoke/идемпотентность
+│   ├── ProjectStateMachineTests.cs
+│   ├── ProjectStateMachineExtendedTests.cs ← все невалидные триггеры из каждой стадии
+│   └── ProjectTransitionResultTests.cs
+│
+├── Validators/                     ← 37 тестов
+│   ├── CommandValidatorTests.cs    ← Archive, FailQA, ReturnToDesign,
+│   │                                  CreateProject, CreateSpecification
+│   └── AddProjectMemberValidatorTests.cs
+│
+├── Application/
+│   ├── Auth/
+│   │   ├── LoginCommandHandlerTests.cs
+│   │   ├── RegisterCommandHandlerTests.cs
+│   │   └── RefreshTokenCommandHandlerTests.cs
+│   ├── Credentials/
+│   │   └── ChangePasswordCommandHandlerTests.cs
+│   ├── Projects/
+│   │   ├── CreateProjectCommandHandlerTests.cs
+│   │   ├── StartDevelopmentCommandHandlerTests.cs
+│   │   ├── TransitionCommandHandlerTests.cs  ← FailQA, PassQA, Release,
+│   │   │                                        SendToQA, ReturnToDesign, Archive
+│   │   ├── ProjectMemberCommandHandlerTests.cs
+│   │   ├── ProjectQueryHandlerTests.cs
+│   │   └── SpecificationHandlerTests.cs
+│   ├── Users/
+│   │   └── UserHandlerTests.cs
+│   ├── MissingHandlerTests.cs      ← Revoke, AssignRole, CreateRole,
+│   │                                  DeleteRole, GetAllRoles, GetUserById,
+│   │                                  GetAllUsers, GetSpecificationById
+│   └── InfrastructureTests.cs      ← ProjectCreatedEventHandler,
+│                                      DateTimeService, TransitionResult
+│
+└── Services/
+    ├── CurrentUserServiceTests.cs
+    ├── PasswordHasherTests.cs
+    ├── ProjectAuthorizationServiceTests.cs
+    └── TokenServiceTests.cs
 ```
 
-## Test Categories
+---
 
-### 1. Domain Entity Tests
+## Покрытие по категориям
 
-Test business logic, state transitions, and invariant protection in domain entities.
+### Домен (приоритет №1)
 
-**Example**: [AppointmentTests.cs](Domain/Healthcare/AppointmentTests.cs)
+Тесты не зависят ни от каких моков — только чистая логика сущностей.
+
+| Файл | Что проверяется |
+|---|---|
+| `ProjectTests` | Базовые сценарии: создание, спецификации, участники, переходы |
+| `ProjectEdgeCaseTests` | Каждый метод вызывается из каждой недопустимой стадии; `Reason` сохраняется в `Transition`; многократные QA-циклы |
+| `ProjectExtendedTests` | `UpdatedAt` обновляется только при успешном переходе; `CreatedAt`/`ArchivedAt`; `HasApprovedSpecification`; авто-версионирование |
+| `ProjectStateMachineExtendedTests` | `CanFire` для всех триггеров из всех стадий; полный цикл; мутатор и аксессор состояния |
+| `ProjectSpecificationTests` | `Approve` → `Revoke`; идемпотентность; `ApprovedAt` |
+| `ProjectMemberAndTransitionTests` | `JoinedAt`, `ChangedAt`, уникальность Id |
+| `ProjectTransitionResultTests` | `Success` / `Fail` factory-методы; все стадии через `[Theory]` |
+| `BaseEntityTests` | `AddDomainEvent`, порядок, `ClearDomainEvents`, повторное добавление |
+| `BaseEventTests` | `OccurredOn` в UTC; монотонность |
+| `DomainModelTests` | `User`, `Role`, `Credentials`, `UserRole`, `RoleConstants` (уникальность) |
+
+### Валидаторы
+
+Используют `FluentValidation.TestHelper` — `TestValidate` + `ShouldHaveValidationErrorFor`.
+
+| Валидатор | Что проверяется |
+|---|---|
+| `ArchiveCommandValidator` | `Reason`: empty, whitespace, 1000/1001 символов |
+| `FailQACommandValidator` | `Reason`: empty, 1000/1001 |
+| `ReturnToDesignCommandValidator` | `Reason`: empty, 1000/1001 |
+| `CreateProjectCommandValidator` | `Name`: empty, 200/201, спецсимволы, Unicode; `Description`: null/empty/1000/1001; `MemberIds`: `Guid.Empty`, смешанный список, null |
+| `CreateSpecificationCommandValidator` | `Content`: empty, whitespace, 10000/10001 |
+| `AddProjectMemberCommandValidator` | Разрешённые роли (Developer/Tester/ProductManager/DevOps); запрещённые (ProjectManager, Admin, неизвестная) |
+
+### Application-слой
+
+Все обработчики мокируются через Moq. `IApplicationDbContext` поднимается через `HandlerTestBase.CreateContextMock()` с `TestAsyncQueryProvider` для поддержки EF Core async-операций.
+
+Стандартный набор проверок для каждого обработчика:
+- не аутентифицирован → `UnauthorizedAccessException`
+- сущность не найдена → `InvalidOperationException`
+- успешный путь → корректный DTO / `TransitionResult`
+- вызов `SaveChangesAsync` при мутации (через `Verify`)
+
+### Сервисы
+
+| Сервис | Что проверяется |
+|---|---|
+| `PasswordHasher` | BCrypt: хэш ≠ plain text; разные хэши одного пароля (соль); верификация; набор паролей через `[Theory]` |
+| `TokenService` | JWT читаем; содержит все клеймы (`NameIdentifier`, `Email`, `Name`, `Role`); срок ≈ 2 часа; корректные issuer/audience |
+| `CurrentUserService` | Парсинг `UserId` из клейма; null при невалидном Guid; `IsAuthenticated`; `IsInRoleAsync`; null `HttpContext` |
+| `ProjectAuthorizationService` | `IsAdminAsync`; `RequireProjectMemberAsync` (Admin/Member/не-член); `RequireProjectRoleAsync` (правильная/неправильная роль; несколько допустимых) |
+
+---
+
+## Инфраструктура тестов
+
+### HandlerTestBase
+
+Базовый класс, от которого наследуются все тесты обработчиков.
+
+```csharp
+// Создать мок контекста с нужными данными
+var contextMock = CreateContextMock(
+    users: new[] { user },
+    roles: new[] { pmRole, devRole },
+    projects: Enumerable.Empty<Project>());
+
+// Фабрики тестовых данных
+var user = CreateUser(userId, "Alice", "Smith");
+var role = CreateRole(name: RoleConstants.ProjectManager);
+var creds = CreateCredentials(userId, "alice@test.com", refreshToken: "token");
+```
+
+### TestAsyncQueryProvider
+
+Позволяет мокировать `DbSet<T>` с поддержкой `FirstOrDefaultAsync`, `AnyAsync`, `ToListAsync` и других async EF Core методов. Подключается автоматически внутри `CreateContextMock`.
+
+---
+
+## Соглашения об именовании
+
+**Классы:** `{ТестируемыйКласс}Tests`  
+**Методы:** `{Метод}_{Сценарий}_{ОжидаемоеПоведение}`
+
+```csharp
+// Примеры
+StartDevelopment_WithoutApprovedSpec_ShouldFail()
+Handle_WhenNotAuthenticated_ShouldThrowUnauthorized()
+Reason_WhenExceeds1000Chars_ShouldHaveValidationError()
+CanFire_ShouldReturnExpectedResult()  // [Theory]
+```
+
+---
+
+## Паттерны
+
+### Arrange-Act-Assert
 
 ```csharp
 [Fact]
-public void Complete_ScheduledAppointment_SetsStatusAndTimestamp()
+public void ApproveSpecification_ShouldRevokePreviousApproved()
 {
     // Arrange
-    var appointment = Appointment.Schedule(_patientId, _doctorId, _validStartUtc, _validEndUtc);
-    var beforeComplete = DateTime.UtcNow;
+    var project = new Project("Test", "Desc");
+    project.AddSpecification("v1");
+    project.AddSpecification("v2");
+    var firstId = project.Specifications.First().Id;
+    var secondId = project.Specifications.Last().Id;
+    project.ApproveSpecification(firstId);
 
     // Act
-    appointment.Complete("Patient checked in and seen");
+    project.ApproveSpecification(secondId);
 
     // Assert
-    appointment.Status.Should().Be(AppointmentStatus.Completed);
-    appointment.CompletedUtc.Should().NotBeNull();
-    appointment.CompletedUtc.Should().BeCloseTo(beforeComplete, TimeSpan.FromSeconds(1));
+    project.Specifications.First(s => s.Id == firstId).IsApproved.Should().BeFalse();
+    project.Specifications.First(s => s.Id == secondId).IsApproved.Should().BeTrue();
 }
 ```
 
-**What to Test**:
-- State transitions (Scheduled → Completed, etc.)
-- Validation logic (throw exceptions for invalid inputs)
-- Business rule enforcement
-- Idempotency (can call method multiple times safely)
-- Edge cases (null values, boundary conditions)
+### Theory для граничных значений
 
-### 2. Validator Tests
+```csharp
+[Theory]
+[InlineData(RoleConstants.Developer)]
+[InlineData(RoleConstants.Tester)]
+[InlineData(RoleConstants.ProductManager)]
+[InlineData(RoleConstants.DevOps)]
+public void RoleName_WhenAllowedRole_ShouldPassValidation(string role)
+{
+    var result = _sut.TestValidate(ValidCommand() with { RoleName = role });
 
-Test FluentValidation validators using FluentValidation.TestHelper.
+    result.ShouldNotHaveValidationErrorFor(x => x.RoleName);
+}
+```
 
-**Example**: [CompleteAppointmentValidatorTests.cs](Healthcare/Appointments/CompleteAppointmentValidatorTests.cs)
+### Проверка вызовов через Verify
 
 ```csharp
 [Fact]
-public void Should_Have_Error_When_AppointmentId_Is_Empty()
+public async Task Handle_WhenUserExists_ShouldRemoveAndSave()
 {
-    // Arrange
-    var command = new CompleteAppointmentCommand(Guid.Empty, "Test notes");
+    var role = CreateRole();
+    var contextMock = CreateContextMock(roles: new[] { role });
+    contextMock.Setup(x => x.Roles.Remove(It.IsAny<Role>()));
+    var handler = new DeleteRoleCommandHandler(contextMock.Object);
 
-    // Act & Assert
-    var result = _validator.TestValidate(command);
-    result.ShouldHaveValidationErrorFor(x => x.AppointmentId)
-        .WithErrorMessage("AppointmentId is required");
+    await handler.Handle(new DeleteRoleCommand(role.Id), CancellationToken.None);
+
+    contextMock.Verify(x => x.Roles.Remove(role), Times.Once);
+    contextMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
 }
 ```
 
-**What to Test**:
-- Required fields validation
-- Length/range constraints
-- Format validation (email, phone, etc.)
-- Custom business rule validation
-- Cross-field validation
+---
 
-### 3. Pipeline Behavior Tests
+## Зависимости
 
-Test MediatR pipeline behaviors with mocked dependencies.
+```xml
+<PackageReference Include="coverlet.collector" Version="8.0.0">
+		<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		<PrivateAssets>all</PrivateAssets>
+</PackageReference>
+<PackageReference Include="FluentAssertions" Version="8.8.0" />
+<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+<PackageReference Include="Moq" Version="4.20.72" />
+<PackageReference Include="NSubstitute" Version="5.3.0" />
+<PackageReference Include="xunit" Version="2.9.3" />
+<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+		<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		<PrivateAssets>all</PrivateAssets>
+</PackageReference>
+<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.3" />
+```
 
-**Example**: [ValidationBehaviorTests.cs](Common/Behaviours/ValidationBehaviorTests.cs)
+---
 
+## Типичные ошибки
+
+**Тест падает на async-методах EF Core (`FirstOrDefaultAsync` и т.д.)**  
+Убедитесь, что `DbSet<T>` создан через `CreateContextMock` — он автоматически подключает `TestAsyncQueryProvider`.
+
+**`Verify` не срабатывает для `.Add()` / `.Remove()`**  
+Нужно явно настроить setup перед созданием обработчика:
 ```csharp
-[Fact]
-public async Task InvokeValidationBehavior_WhenValidatorResultIsNotValid_ShouldReturnListOfErrors()
-{
-    // Arrange
-    var mockValidator = Substitute.For<IValidator<TestRequest>>();
-    var failures = new List<ValidationFailure>
-    {
-        new ValidationFailure("Property1", "Error 1")
-    };
-    mockValidator.ValidateAsync(Arg.Any<ValidationContext<TestRequest>>(), default)
-        .Returns(new ValidationResult(failures));
-
-    var behavior = new ValidationBehaviour<TestRequest, ErrorOr<int>>(new[] { mockValidator });
-
-    // Act
-    var result = await behavior.Handle(
-        new TestRequest(),
-        () => Task.FromResult(ErrorOr<int>.From(1)),
-        CancellationToken.None);
-
-    // Assert
-    result.IsError.Should().BeTrue();
-    result.Errors.Should().HaveCount(1);
-}
+contextMock.Setup(x => x.Projects.Add(It.IsAny<Project>()));
 ```
 
-**What to Test**:
-- Behavior executes correctly with valid input
-- Behavior handles errors appropriately
-- Pipeline continues/stops as expected
-- Side effects occur correctly
+**Validator-тест не находит ошибку**  
+Используйте `TestValidate()`, а не `Validate()`. Выражение `x => x.PropertyName` должно совпадать точно.
 
-### 4. Helper/Utility Tests
-
-Test pure functions and utility methods.
-
-**Example**: [MinimalApiProblemHelperTests.cs](Common/MinimalApiProblemHelperTests.cs)
-
+**`Should().Throw<>()` на async-методе**  
+Используйте `await act.Should().ThrowAsync<>()`:
 ```csharp
-[Fact]
-public void Problem_WithNotFoundError_ReturnsProblemWithStatus404()
-{
-    // Arrange
-    var errors = new List<Error>
-    {
-        Error.NotFound("Resource.NotFound", "Resource not found")
-    };
-
-    // Act
-    var result = MinimalApiProblemHelper.Problem(errors);
-
-    // Assert
-    result.Should().BeOfType<ProblemHttpResult>();
-    var problemResult = (ProblemHttpResult)result;
-    problemResult.StatusCode.Should().Be(404);
-}
+var act = async () => await handler.Handle(command, CancellationToken.None);
+await act.Should().ThrowAsync<UnauthorizedAccessException>();
 ```
-
-## Testing Frameworks & Libraries
-
-### xUnit
-
-Testing framework with `[Fact]` and `[Theory]` attributes.
-
-```csharp
-[Fact]  // Single test case
-public void MyTest() { }
-
-[Theory]  // Multiple test cases with different inputs
-[InlineData(1, 2, 3)]
-[InlineData(2, 3, 5)]
-public void Add_TwoNumbers_ReturnsSum(int a, int b, int expected)
-{
-    var result = a + b;
-    result.Should().Be(expected);
-}
-```
-
-### FluentAssertions
-
-Provides readable, expressive assertions:
-
-```csharp
-// Basic assertions
-result.Should().Be(expected);
-result.Should().NotBeNull();
-result.Should().BeEquivalentTo(expected);
-
-// Strings
-name.Should().StartWith("Dr.");
-message.Should().Contain("error");
-email.Should().MatchRegex(@"^[^@]+@[^@]+\.[^@]+$");
-
-// Numbers
-count.Should().BeGreaterThan(0);
-percentage.Should().BeInRange(0, 100);
-
-// DateTime
-timestamp.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
-
-// Collections
-list.Should().HaveCount(3);
-list.Should().Contain(x => x.Id == expectedId);
-list.Should().NotBeEmpty();
-
-// Exceptions
-var act = () => myObject.DoSomething();
-act.Should().Throw<InvalidOperationException>()
-    .WithMessage("Cannot complete*");
-
-// Types
-result.Should().BeOfType<MyType>();
-result.Should().BeAssignableTo<IMyInterface>();
-```
-
-### NSubstitute
-
-Mocking framework for creating test doubles:
-
-```csharp
-// Create mock
-var mockService = Substitute.For<IMyService>();
-
-// Setup return values
-mockService.GetValue().Returns(42);
-mockService.GetValueAsync().Returns(Task.FromResult(42));
-
-// Setup conditional returns
-mockService.GetById(Arg.Any<Guid>()).Returns(x => new Item { Id = x.Arg<Guid>() });
-
-// Setup exceptions
-mockService.DoSomething().Throws(new InvalidOperationException("Error"));
-
-// Verify calls
-mockService.Received(1).DoSomething();
-mockService.DidNotReceive().DoSomethingElse();
-
-// Capture arguments
-Guid capturedId = Guid.Empty;
-mockService.Save(Arg.Do<Item>(x => capturedId = x.Id));
-```
-
-### FluentValidation.TestHelper
-
-Specialized testing for validators:
-
-```csharp
-// Test validation errors
-var result = _validator.TestValidate(command);
-result.ShouldHaveValidationErrorFor(x => x.PropertyName);
-result.ShouldHaveValidationErrorFor(x => x.PropertyName)
-    .WithErrorMessage("Expected error message");
-
-// Test no validation errors
-result.ShouldNotHaveValidationErrorFor(x => x.PropertyName);
-result.ShouldNotHaveAnyValidationErrors();
-```
-
-## Common Patterns
-
-### Testing State Transitions
-
-```csharp
-[Fact]
-public void Complete_ScheduledAppointment_TransitionsToCompleted()
-{
-    // Arrange
-    var appointment = Appointment.Schedule(_patientId, _doctorId, _startUtc, _endUtc);
-
-    // Act
-    appointment.Complete("Notes");
-
-    // Assert
-    appointment.Status.Should().Be(AppointmentStatus.Completed);
-}
-```
-
-### Testing Validation
-
-```csharp
-[Fact]
-public void Complete_NotesExceed1024Characters_ThrowsArgumentException()
-{
-    // Arrange
-    var appointment = Appointment.Schedule(_patientId, _doctorId, _startUtc, _endUtc);
-    var longNotes = new string('x', 1025);
-
-    // Act & Assert
-    var act = () => appointment.Complete(longNotes);
-    act.Should().Throw<ArgumentException>()
-        .WithMessage("Notes cannot exceed 1024 characters*")
-        .And.ParamName.Should().Be("notes");
-}
-```
-
-### Testing Idempotency
-
-```csharp
-[Fact]
-public void Complete_AlreadyCompleted_RemainsUnchanged()
-{
-    // Arrange
-    var appointment = Appointment.Schedule(_patientId, _doctorId, _startUtc, _endUtc);
-    appointment.Complete("First completion");
-    var originalTimestamp = appointment.CompletedUtc;
-
-    // Act
-    appointment.Complete("Second attempt");
-
-    // Assert
-    appointment.CompletedUtc.Should().Be(originalTimestamp);
-}
-```
-
-### Testing Invariant Protection
-
-```csharp
-[Fact]
-public void Cancel_CompletedAppointment_ThrowsInvalidOperationException()
-{
-    // Arrange
-    var appointment = Appointment.Schedule(_patientId, _doctorId, _startUtc, _endUtc);
-    appointment.Complete("Completed");
-
-    // Act & Assert
-    var act = () => appointment.Cancel("Trying to cancel");
-    act.Should().Throw<InvalidOperationException>()
-        .WithMessage("Cannot cancel a completed appointment");
-}
-```
-
-## Best Practices
-
-### ✅ Do's
-
-1. **Test One Thing** - Each test should verify a single behavior
-2. **Use Arrange-Act-Assert** - Clear three-part structure
-3. **Descriptive Names** - `MethodName_Scenario_ExpectedBehavior`
-4. **Fast Tests** - Unit tests should complete in milliseconds
-5. **Isolated Tests** - No dependencies between tests
-6. **Test Edge Cases** - Null, empty, boundary values
-7. **Test Exceptions** - Verify error handling
-8. **Use FluentAssertions** - Readable assertions
-9. **Mock External Dependencies** - No database, HTTP, file system
-10. **Keep Tests Simple** - No complex logic in tests
-
-### ❌ Don'ts
-
-1. **Don't Test Implementation Details** - Test behavior, not internals
-2. **Don't Share State** - Each test should be independent
-3. **Don't Use Magic Numbers** - Use named constants
-4. **Don't Skip Assertions** - Always verify expected outcome
-5. **Don't Test Framework Code** - Trust that EF, ASP.NET work
-6. **Don't Make Tests Complex** - Tests should be simple to understand
-7. **Don't Depend on Execution Order** - Tests should run in any order
-8. **Don't Use Real Dependencies** - Mock everything external
-9. **Don't Write Slow Tests** - Unit tests should be fast
-10. **Don't Test Multiple Things** - One assertion per test (generally)
-
-## Naming Conventions
-
-### Test Class Names
-
-```
-{ClassUnderTest}Tests
-```
-
-Examples:
-- `AppointmentTests`
-- `CompleteAppointmentValidatorTests`
-- `MinimalApiProblemHelperTests`
-
-### Test Method Names
-
-```
-{MethodName}_{Scenario}_{ExpectedBehavior}
-```
-
-Examples:
-- `Complete_ScheduledAppointment_SetsStatusAndTimestamp`
-- `Complete_CancelledAppointment_ThrowsInvalidOperationException`
-- `Should_Have_Error_When_AppointmentId_Is_Empty`
-- `Problem_WithNotFoundError_ReturnsProblemWithStatus404`
-
-## When to Use Unit Tests vs Integration Tests
-
-### Use Unit Tests For:
-
-- ✅ Domain object behavior (state transitions, validation)
-- ✅ Validators (FluentValidation rules)
-- ✅ Helper/utility methods (pure functions)
-- ✅ Pipeline behaviors (with mocked dependencies)
-- ✅ Value objects (equality, immutability)
-- ✅ Edge cases and exceptional paths
-
-### Use Integration Tests For:
-
-- ✅ HTTP endpoint testing (full request/response cycle)
-- ✅ Database operations (queries, persistence)
-- ✅ Feature workflows (multiple steps)
-- ✅ Error responses (ProblemDetails format)
-- ✅ Component interactions
-
-**Rule of Thumb**: If it needs a database or HTTP, use integration tests. If it's pure logic, use unit tests.
-
-## Troubleshooting
-
-### Test Fails with "Expected X but found Y"
-
-FluentAssertions provides detailed output. Common fixes:
-
-- Use `.Should().BeEquivalentTo()` for object comparisons
-- Use `.Should().Be()` for value comparisons
-- Check for timezone issues with DateTime values
-
-### Test Fails Intermittently
-
-- Avoid `DateTime.Now` - use fixed values or `DateTime.UtcNow`
-- Don't depend on test execution order
-- Ensure no shared static state
-
-### Mock Not Returning Expected Value
-
-- Check argument matchers: `Arg.Any<T>()` vs `Arg.Is<T>(x => condition)`
-- Verify setup is called before test execution
-- Use `Returns()` for sync, `ReturnsAsync()` for async methods
-
-### Validator Test Not Finding Error
-
-- Verify property expression: `x => x.PropertyName` must match exactly
-- Check validator is using correct command type
-- Use `TestValidate()` not `Validate()`
-
-### Tests Are Slow
-
-- Unit tests should complete in < 100ms each
-- Check for accidental database/HTTP calls
-- Remove `Thread.Sleep` or unnecessary delays
-- Consider if test should be an integration test instead
-
-## Contributing
-
-When adding new tests:
-
-1. Place tests in the appropriate category folder
-2. Follow naming conventions
-3. Use Arrange-Act-Assert pattern
-4. Add descriptive test names
-5. Verify tests run in isolation
-6. Ensure tests are fast
-7. Add comments for complex scenarios
-
-## Additional Resources
-
-- [xUnit Documentation](https://xunit.net/)
-- [FluentAssertions Documentation](https://fluentassertions.com/)
-- [NSubstitute Documentation](https://nsubstitute.github.io/)
-- [FluentValidation Testing](https://docs.fluentvalidation.net/en/latest/testing.html)

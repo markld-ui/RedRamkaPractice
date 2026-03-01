@@ -1,29 +1,53 @@
-# См. статью по ссылке https://aka.ms/customizecontainer, чтобы узнать как настроить контейнер отладки и как Visual Studio использует этот Dockerfile для создания образов для ускорения отладки.
-
-# Этот этап используется при запуске из VS в быстром режиме (по умолчанию для конфигурации отладки)
+# ── Stage 1: base runtime image ───────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
-EXPOSE 8081
 
-
-# Этот этап используется для сборки проекта службы
+# ── Stage 2: build ─────────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["src/API/API.csproj", "src/API/"]
-RUN dotnet restore "./src/API/API.csproj"
+
+# Копируем .csproj файлы отдельно для кэширования слоя restore
+COPY ["src/API/API.csproj",                  "src/API/"]
+COPY ["src/Application/Application.csproj",  "src/Application/"]
+COPY ["src/Domain/Domain.csproj",            "src/Domain/"]
+COPY ["src/Persistence/Persistence.csproj",  "src/Persistence/"]
+
+RUN dotnet restore "src/API/API.csproj"
+
+# Копируем весь исходный код и собираем
 COPY . .
 WORKDIR "/src/src/API"
-RUN dotnet build "./API.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "API.csproj" -c $BUILD_CONFIGURATION -o /app/build --no-restore
 
-# Этот этап используется для публикации проекта службы, который будет скопирован на последний этап
-FROM build AS publish
+# ── Stage 3: test ─────────────────────────────────────────────────────────────
+# Наследуется от build, поэтому исходники уже скопированы
+FROM build AS test
+WORKDIR /src
+
+COPY ["tests/Application.UnitTests/Application.UnitTests.csproj", \
+      "tests/Application.UnitTests/"]
+RUN dotnet restore "tests/Application.UnitTests/Application.UnitTests.csproj"
+
+RUN dotnet test "tests/Application.UnitTests/Application.UnitTests.csproj" \
+    --no-restore \
+    --logger "console;verbosity=normal" \
+    --configuration Release
+
+# ── Stage 4: publish ──────────────────────────────────────────────────────────
+# FROM test — publish стартует только после успешного прохождения тестов
+FROM test AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./API.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+WORKDIR "/src/src/API"
+RUN dotnet publish "API.csproj" \
+    -c $BUILD_CONFIGURATION \
+    -o /app/publish \
+    --no-restore \
+    /p:UseAppHost=false
 
-# Этот этап используется в рабочей среде или при запуске из VS в обычном режиме (по умолчанию, когда конфигурация отладки не используется)
+# ── Stage 5: final runtime image ──────────────────────────────────────────────
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
