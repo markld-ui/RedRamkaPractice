@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: Hjvfy3105
       POSTGRES_DB: psl_db
     ports:
-      - "5432:5432"
+      - "5433:5433"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -31,7 +31,7 @@ services:
     environment:
       # Переопределяем строку подключения — в контейнере хост это имя сервиса postgres
       ConnectionStrings__DefaultConnection: >-
-        Host=postgres;Port=5432;Database=psl_db;
+        Host=postgres;Port=5433;Database=psl_db;
         Username=postgres;Password=Hjvfy3105
       Jwt__Key: "07a84af24df84b42939ab2fdc643325f"
       Jwt__Issuer: "PSL"
