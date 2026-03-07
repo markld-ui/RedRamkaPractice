@@ -1,4 +1,4 @@
-﻿using API.Middleware;
+using API.Middleware;
 using API.Services;
 using Application.Common.Interfaces;
 using Application.Features.Projects.Commands;
@@ -6,30 +6,24 @@ using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Persistence;
+using System.Reflection;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-var configuration = builder.Configuration;
-var services = builder.Services;
 
-var applicationAssembly = typeof(CreateProjectCommand).Assembly;
-
-// ──────────────────────────────────────────────
-// MVC
-// ──────────────────────────────────────────────
-services.AddControllers()
+builder.Services.AddControllers()
     .AddJsonOptions(opts =>
-        opts.JsonSerializerOptions.PropertyNamingPolicy = null);
+    {
+        opts.JsonSerializerOptions.PropertyNamingPolicy = null;
+    });
 
-services.AddEndpointsApiExplorer();
+builder.Services.AddEndpointsApiExplorer();
 
-// ──────────────────────────────────────────────
-// Swagger
-// ──────────────────────────────────────────────
-services.AddSwaggerGen(options =>
+builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
@@ -63,54 +57,42 @@ services.AddSwaggerGen(options =>
     });
 });
 
-// ──────────────────────────────────────────────
-// CORS
-// ──────────────────────────────────────────────
-services.AddCors(options =>
+
+builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
         policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod()));
 
-// ──────────────────────────────────────────────
-// Database
-// ──────────────────────────────────────────────
-services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
-services.AddScoped<ApplicationDbContextSeed>();
+builder.Services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
 
-// ──────────────────────────────────────────────
-// MediatR & Validation
-// ──────────────────────────────────────────────
-services.AddMediatR(cfg =>
+var applicationAssembly = typeof(CreateProjectCommand).Assembly;
+
+builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(applicationAssembly));
 
-services.AddValidatorsFromAssembly(applicationAssembly);
+builder.Services.AddValidatorsFromAssembly(applicationAssembly);
 
-// ──────────────────────────────────────────────
-// Application Services
-// ──────────────────────────────────────────────
-services.AddHttpContextAccessor();
-services.AddScoped<ICurrentUserService, CurrentUserService>();
-services.AddScoped<IDateTime, DateTimeService>();
-services.AddScoped<IPasswordHasher, PasswordHasher>();
-services.AddScoped<ITokenService, TokenService>();
-services.AddScoped<IProjectAuthorizationService, ProjectAuthorizationService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IDateTime, DateTimeService>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IProjectAuthorizationService, ProjectAuthorizationService>();
+builder.Services.AddScoped<ApplicationDbContextSeed>();
 
-// ──────────────────────────────────────────────
-// Authentication & Authorization
-// ──────────────────────────────────────────────
-var jwtSettings = configuration.GetSection("Jwt");
+builder.Services.AddHttpContextAccessor();
 
-services.AddAuthentication(options =>
+builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
+    var jwtSettings = builder.Configuration.GetSection("Jwt");
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -119,16 +101,12 @@ services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.ASCII.GetBytes(jwtSettings["Key"]))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSettings["Key"]))
     };
 });
 
-services.AddAuthorization();
+builder.Services.AddAuthorization();
 
-// ──────────────────────────────────────────────
-// Pipeline
-// ──────────────────────────────────────────────
 var app = builder.Build();
 
 app.UseMiddleware<GlobalExceptionHandler>();
@@ -143,9 +121,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// ──────────────────────────────────────────────
-// Database Migrations & Seeding
-// ──────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
