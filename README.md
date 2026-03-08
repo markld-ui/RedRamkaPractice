@@ -291,3 +291,5 @@ Swagger UI — основной интерфейс для демонстраци
 ## 🪪 Лицензия
 
 MIT License — подробности в файле [LICENSE](LICENSE).
+
+## TEST LINUX
